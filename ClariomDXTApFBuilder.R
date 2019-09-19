@@ -12,8 +12,10 @@
 # Examples using platform design packages on Bioconductor, found at:
 # https://www.bioconductor.org/packages/release/data/annotation/
 
-# probeFile.hta20 <- ClariomXTApFBuilder(chip.pd = "pd.hta.2.0")
-# probeFile.mta10 <- ClariomXTApFBuilder(chip.pd = "pd.mta.1.0")
+# probeFile.hta20 <- ClariomDXTApFBuilder(chip.pd = "pd.hta.2.0")
+# probeFile.mta10 <- ClariomDXTApFBuilder(chip.pd = "pd.mta.1.0")
+# probeFile.rta10 <- ClariomDXTApFBuilder(chip.pd = "pd.rta.1.0")
+# probeFile.clariomdhuman <- ClariomDXTApFBuilder(chip.pd = "pd.clariom.d.human")
 
 # # load necessary libaries:
 # library(data.table)
@@ -91,10 +93,7 @@ ClariomDXTApFBuilder <- function(chip.pd = NULL) {
   # creates "netaffxTranscript" object
   
   affynet.TC <- as.data.table(netaffxTranscript@data)
-  # colnames(affynet.TC)
-  # table(affynet.TC$locustype)
-  # Coding NonCoding 
-  # 44910     22848 
+
   
   if (chip %like% "clarioms"){
     affynet.TC <- affynet.TC[,c("transcriptclusterid","category")]
@@ -102,7 +101,7 @@ ClariomDXTApFBuilder <- function(chip.pd = NULL) {
     setkey(chip.pmfeature,transcript_cluster_id)
     probeFile <- affynet.TC[chip.pmfeature]
   }
-  if (chip %like% "mta10"| chip %like% "hta20"){
+  if (chip %like% "mta10"| chip %like% "hta20" | chip %like% "rta10" | chip %like% "clariomdhuman"){
     affynet.TC <- affynet.TC[,c("transcriptclusterid","category")]
     setkey(affynet.TC,transcriptclusterid)
     setkey(chip.pmfeature,transcript_cluster_id)
@@ -124,22 +123,21 @@ ClariomDXTApFBuilder <- function(chip.pd = NULL) {
   # key the probeFile to sort by fid (or other column type):
   setkey(probeFile,fid)
   
-  # Remove unnecessary columns:
-  probeFile[,c("atom","row_names") := NULL]
+  # Remove unnecessary columns, if present:
+  if (!is.na(match("atom", names(probeFile)))){
+    probeFile[,c("atom") := NULL]
+  }
+  # If "row_names" column exists (such as in the HTA_2-0), remove it:
+  if (!is.na(match("row_names", names(probeFile)))){
+    probeFile[,c("row_names") := NULL]
+  }
   
-  # save(probeFile,file = "Ss2.hta20.bioC.probeFile.rda",compress="xz")
-  # 09.05.19: produces a 126.4MB rda file
-  
-  # If want to save these built up probeFiles to the Sscore2 package:
-  # namefile <- paste("Ss2.",chip,".probeFile.rda",sep="")
   # savepath <- system.file("data",package = "Sscore2")
-  
-  save(probeFile, file = paste(system.file("data/",package = "Sscore2"),
+    save(probeFile, file = paste(system.file("data/",package = "Sscore2"),
                                paste("Ss2.",chip,".probeFile.rda",sep=""),sep=""),
-       compress = "gzip", compression_level = 1)
+         compress = "gzip", compression_level = 1)
   
   print(paste("'probeFile' created and stored in: ",paste("Ss2.",chip,".probeFile.rda",sep=""),sep=""), sep="")
   # print("'probeFile' data.table returned to working environment")
-  # options(warn = 0)
   return(probeFile)	
 }
